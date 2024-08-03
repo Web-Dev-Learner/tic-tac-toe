@@ -1,92 +1,124 @@
-const boxs=document.querySelectorAll('.box');
-const statusTxt=document.querySelector('#status');
-const btnRestart=document.querySelector('#restart');
-let x="<img src='images/noo.png'>";
-let o="<img src='images/nx.jpg'>";
+window.addEventListener('DOMContentLoaded', () => {
+  const tiles = Array.from(document.querySelectorAll('.tile'));
+  const playerDisplay = document.querySelector('.display-player');
+  const resetButton = document.querySelector('#reset');
+  const announcer = document.querySelector('.announcer');
 
-const win=[
-  [0,1,2],
-  [3,4,5],
-  [6,7,8],
-  [0,3,6],
-  [1,4,7],
-  [2,5,8],
-  [0,4,8],
-  [2,4,6]
-];
+  let board = ['', '', '', '', '', '', '', '', ''];
+  let currentPlayer = 'X';
+  let isGameActive = true;
 
-let options=["","","","","","","","",""];
-let currentPlayer=x;
-let player="X";
-let running=false;
-init();
+  const PLAYERX_WON = 'PLAYERX_WON';
+  const PLAYERO_WON = 'PLAYERO_WON';
+  const TIE = 'TIE';
 
-function init(){
-  boxs.forEach(box=>box.addEventListener('click',boxClick));
-  btnRestart.addEventListener('click',restartGame);
-  statusTxt.textContent=`${player} Your Turn`;
-  running=true;
-}
 
-function boxClick(){
-  const index=this.dataset.index;
-  if(options[index]!="" || !running){
-    return;
-  }
-  updateBox(this,index);
-  checkWinner();
-}
+  /*
+      Indexes within the board
+      [0] [1] [2]
+      [3] [4] [5]
+      [6] [7] [8]
+  */
 
-function updateBox(box,index){
-  options[index]=player;
-  box.innerHTML=currentPlayer;
-}
+  const winningConditions = [
+      [0, 1, 2],
+      [3, 4, 5],
+      [6, 7, 8],
+      [0, 3, 6],
+      [1, 4, 7],
+      [2, 5, 8],
+      [0, 4, 8],
+      [2, 4, 6]
+  ];
 
-function changePlayer(){
-    player=(player=='X') ? "O" :"X";
-    currentPlayer=(currentPlayer==x) ? o :x;
-    statusTxt.textContent=`${player} Your Turn`;
-}
+  function handleResultValidation() {
+      let roundWon = false;
+      for (let i = 0; i <= 7; i++) {
+          const winCondition = winningConditions[i];
+          const a = board[winCondition[0]];
+          const b = board[winCondition[1]];
+          const c = board[winCondition[2]];
+          if (a === '' || b === '' || c === '') {
+              continue;
+          }
+          if (a === b && b === c) {
+              roundWon = true;
+              break;
+          }
+      }
 
-function checkWinner(){
-  let isWon=false;
-  for(let i=0;i<win.length;i++){
-    const condition=win[i]; //[0,1,2]
-    const box1=options[condition[0]]; //x
-    const box2=options[condition[1]]; //''
-    const box3=options[condition[2]]; //''
-    if(box1=="" || box2=="" || box3==""){
-      continue;
-    }
-    if(box1==box2 && box2==box3){
-      isWon=true;
-      boxs[condition[0]].classList.add('win');
-      boxs[condition[1]].classList.add('win');
-      boxs[condition[2]].classList.add('win');
-    }
+  if (roundWon) {
+          announce(currentPlayer === 'X' ? PLAYERX_WON : PLAYERO_WON);
+          isGameActive = false;
+          return;
+      }
+
+  if (!board.includes(''))
+      announce(TIE);
   }
 
-  if(isWon){
-    statusTxt.textContent=`${player} Won..`;
-    running=false;
-  }else if(!options.includes("")){
-    statusTxt.textContent=`Game Draw..!`;
-    running=false;
-  }else{
-    changePlayer();
+  const announce = (type) => {
+      switch(type){
+          case PLAYERO_WON:
+              announcer.innerHTML = 'Player <span class="playerO">O</span> Won';
+              break;
+          case PLAYERX_WON:
+              announcer.innerHTML = 'Player <span class="playerX">X</span> Won';
+              break;
+          case TIE:
+              announcer.innerText = 'Tie';
+      }
+      announcer.classList.remove('hide');
+  };
+
+  const isValidAction = (tile) => {
+      if (tile.innerText === 'X' || tile.innerText === 'O'){
+          return false;
+      }
+
+      return true;
+  };
+
+  const updateBoard =  (index) => {
+      board[index] = currentPlayer;
   }
 
-}
+  const changePlayer = () => {
+      playerDisplay.classList.remove(`player${currentPlayer}`);
+      currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+      playerDisplay.innerText = currentPlayer;
+      playerDisplay.classList.add(`player${currentPlayer}`);
+  }
 
-function restartGame(){
-  options=["","","","","","","","",""];
-  currentPlayer=x;
-  player="X";
-  running=true;
-  statusTxt.textContent=`${player} Your Turn`;
+  const userAction = (tile, index) => {
+      if(isValidAction(tile) && isGameActive) {
+          tile.innerText = currentPlayer;
+          tile.classList.add(`player${currentPlayer}`);
+          updateBoard(index);
+          handleResultValidation();
+          changePlayer();
+      }
+  }
+  
+  const resetBoard = () => {
+      board = ['', '', '', '', '', '', '', '', ''];
+      isGameActive = true;
+      announcer.classList.add('hide');
 
-  boxs.forEach(box=>{
-      box.innerHTML="";
-      box.classList.remove('win');
+      if (currentPlayer === 'O') {
+          changePlayer();
+      }
+
+      tiles.forEach(tile => {
+          tile.innerText = '';
+          tile.classList.remove('playerX');
+          tile.classList.remove('playerO');
+      });
+  }
+
+  tiles.forEach( (tile, index) => {
+      tile.addEventListener('click', () => userAction(tile, index));
   });
-}
+
+  resetButton.addEventListener('click', resetBoard);
+});
